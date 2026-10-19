@@ -131,3 +131,9 @@ state inputs/outputs. A bare actor head cannot reconstruct unavailable latent
 state. Neither this interface nor the scripted example is an implemented/trained
 RSSM, MPC or MCTS policy. Full-model planning is a separate future option requiring
 export parity and browser profiling; no ONNX dependency is added here.
+
+## Island game (separate objective)
+
+[`ISLAND.md`](ISLAND.md) describes the new castaway game, forced voting councils
+and winner-only reward. `island-game.mjs` and `island-renderer.mjs` are independent
+entry points; the existing synthetic-v2 experiments and scripts retain their rules.

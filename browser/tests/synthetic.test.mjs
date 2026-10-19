@@ -4,6 +4,7 @@ import {SyntheticWorld, SYNTHETIC_VERSION} from '../synthetic.mjs';
 import {DemoRuntime} from '../demo-runtime.mjs';
 import {createScriptedController} from '../scripted.mjs';
 import {drawSyntheticFrame} from '../renderer.mjs';
+import {drawIslandFrame} from '../island-renderer.mjs';
 
 test('wear guarantees terminal failure despite replenishment every simulation step', () => {
   const world = new SyntheticWorld({config: {agents: 1, wear_limit: 3, horizon: 10, hazard_count: 0}});
@@ -104,7 +105,19 @@ test('Canvas observer draws actual frame geometry without stepping world', () =>
   assert.equal(calls.filter(v => v[0] === 'fillText').length, 8);
   assert.equal(calls.filter(v => v[0] === 'translate').length, 8);
   const translations = calls.filter(v => v[0] === 'translate').map(v => v.slice(1));
-  assert.deepEqual(translations, world.frame().positions.map(([y,x]) => [(x+.5)*20, (y+.45)*20]));
+  assert.ok(translations.every(([cx, cy], i) => {
+    const [y, x] = world.frame().positions[i];
+    return Math.abs(cx - (x + .5) * 20) < 1e-9 && Math.abs(cy - (y + .45) * 20) < 1e-9;
+  }));
+  // A wide viewport shows every row without stretching mouse geometry.
+  calls.length = 0; ctx.canvas.width = 960;
+  drawSyntheticFrame(ctx, world.frame(), world.config);
+  assert.deepEqual(calls.filter(v => v[0] === 'translate').map(v => v.slice(1)),
+    world.frame().positions.map(([y,x]) => [(x+.5)*60, (y+.5)*20-1]));
+  assert.ok(calls.filter(v => v[0] === 'arc').every(v => v[3] <= 20));
+  assert.ok(calls.filter(v => v[0] === 'fillRect').some(v => v[1] === 900 && v[2] === 300 && v[3] === 60 && v[4] === 20));
+  calls.length = 0; ctx.canvas.width = 320;
+  drawSyntheticFrame(ctx, world.frame(), world.config);
   assert.ok(calls.every(v => v.slice(1).every(x => typeof x !== 'number' || Number.isFinite(x))));
   assert.deepEqual(world.state(), before);
   const initialCalls = structuredClone(calls);
@@ -122,4 +135,17 @@ test('Canvas observer draws actual frame geometry without stepping world', () =>
     assert.deepEqual(world.state(), snapshot);
     previous = world.frame();
   }
+});
+
+test('island renderer keeps all players inside a wide viewport without mutating state', () => {
+  const world = new SyntheticWorld(), before = world.state(), calls = [];
+  const ctx = {canvas: {width: 960, height: 320}};
+  for (const name of ['clearRect','fillRect','beginPath','moveTo','lineTo','stroke','arc','ellipse','fill','fillText','save','restore','translate'])
+    ctx[name] = (...args) => calls.push([name, ...args]);
+  drawIslandFrame(ctx, world.frame(), world.config);
+  assert.deepEqual(calls.filter(v => v[0] === 'translate').map(v => v.slice(1)),
+    world.frame().positions.map(([y,x]) => [(x+.5)*60, (y+.5)*20]));
+  assert.equal(calls.filter(v => v[0] === 'fillText').length, 8);
+  assert.ok(calls.every(v => v.slice(1).every(x => typeof x !== 'number' || Number.isFinite(x))));
+  assert.deepEqual(world.state(), before);
 });
