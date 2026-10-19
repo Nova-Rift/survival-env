@@ -32,3 +32,16 @@ test('voting proceeds even if everyone opts out; no self-votes, terminal reward 
  assert.equal(g.remaining.length,1);assert.equal(g.councils.length,7);assert.equal(votes,35);assert.equal(g.rewards.reduce((a,b)=>a+b),1);assert.throws(()=>g.step({type:'pass'}));
  assert.deepEqual(g.reset(),new SocialGame().frame());
 });
+test('full personal history survives old windows and councils without leaking private choices',()=>{
+ const g=new SocialGame({rounds:12});act(g,0,{type:'invite',target:1});act(g,1,{type:'join',group:1});
+ for(let i=0;i<10;i++){act(g,0,{type:'say',text:`OLD_MEMORY_${i}`,intention:`OWN_INTENTION_${i}`});act(g,1,{type:'say',text:`REPLY_${i}`});}
+ assert.ok(g.observe(0).heard.length>18);assert.ok(g.observe(0).heard.some(e=>e.text.includes('OLD_MEMORY_0')));
+ assert.ok(g.observe(0).intentions.some(e=>e.text==='OWN_INTENTION_0'));assert.ok(!JSON.stringify(g.observe(1)).includes('OWN_INTENTION_0'));
+ while(g.phase!=='vote')g.step({type:'pass'});
+ g.step({type:'vote',target:7,reason:'MY_PRIVATE_VOTE_REASON'});
+ assert.equal(g.observe(0).ownDecisions.at(-1).action.target,7);assert.ok(!JSON.stringify(g.observe(1)).includes('MY_PRIVATE_VOTE_REASON'));
+ while(g.phase==='vote')g.step({type:'vote',target:7===g.current?6:7});
+ assert.ok(g.observe(0).heard.some(e=>e.text.includes('OLD_MEMORY_0')));
+ const view=g.observe(0);view.heard.length=0;view.ownDecisions.length=0;assert.ok(g.observe(0).heard.length>18);
+ g.reset();assert.deepEqual(g.observe(0).heard,[]);assert.deepEqual(g.observe(0).ownDecisions,[]);assert.deepEqual(g.observe(0).intentions,[]);
+});

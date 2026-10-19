@@ -49,3 +49,13 @@ This is an intentionally limited turn-based social game, not a claim to reproduc
 human social behavior or trained cooperation. Original island/survival rules and
 checkpoints remain unchanged. The public site is scripted; optional paid local
 language agents live in https://github.com/Nova-Rift/island-simulator .
+
+## Full personal history
+
+`observe(agent)` returns the entire `heard` history, `ownDecisions` (including
+private vote targets/reasons), and `intentions` history since Reset. None is
+windowed or replaced by the latest intention card. Only the named agent sees
+its own decisions/intentions; private message audience rules remain unchanged.
+Histories survive council/group resets, but a new game or page reload clears
+in-memory state. The local model pauses on context rejection rather than dropping
+old events. Full history availability does not guarantee perfect model recall.
