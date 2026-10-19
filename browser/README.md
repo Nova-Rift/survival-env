@@ -65,6 +65,20 @@ a new world to reset. World snapshots exclude policy memory: checkpoint and
 restore each policy session separately if that future feature is needed. It is
 not implemented in this preparation step.
 
+## Meadow presentation — October 19, 2026
+
+`renderer.mjs` draws synthetic-v2 agents as mice in a meadow: shared recharge cells
+are berry clusters, hazard cells are thorn patches (orange when dangerous), and
+each living mouse has a colored number tag and an energy bar. The Site labels
+power/integrity/wear as energy/health/age. This is a visual metaphor for a simplified
+simulation, not a biological aging model. Rule values and agent observations are
+unchanged. The hard96-step wear limit is presented as a fixed lifetime in turns.
+
+An optional previous observer frame turns mice toward their last movement. Rendering
+uses no randomness or simulation stepping and mutates neither frame nor world.
+Inactive markers are drawn before living mice, so a mouse can visibly enter a
+previously vacated cell. Color/number tags connect the board to the per-agent stats.
+
 ## Randomness and what parity means
 
 Default JS randomness is seeded Mulberry32 with partial Fisher-Yates sampling

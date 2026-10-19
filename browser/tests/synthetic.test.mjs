@@ -98,10 +98,28 @@ test('invalid action does not advance wear or mutate the environment', () => {
 test('Canvas observer draws actual frame geometry without stepping world', () => {
   const world = new SyntheticWorld(), before = world.state(), calls = [];
   const ctx = {canvas: {width: 320, height: 320}};
-  for (const name of ['clearRect', 'fillRect', 'beginPath', 'moveTo', 'lineTo', 'stroke', 'arc', 'fill', 'fillText']) ctx[name] = (...args) => calls.push([name, ...args]);
+  for (const name of ['clearRect', 'fillRect', 'beginPath', 'moveTo', 'lineTo', 'stroke', 'arc', 'ellipse',
+    'fill', 'fillText', 'save', 'restore', 'translate', 'rotate', 'quadraticCurveTo', 'closePath']) ctx[name] = (...args) => calls.push([name, ...args]);
   drawSyntheticFrame(ctx, world.frame(), world.config);
   assert.equal(calls.filter(v => v[0] === 'fillText').length, 8);
-  assert.equal(calls.filter(v => v[0] === 'arc').length, world.frame().resources.length);
+  assert.equal(calls.filter(v => v[0] === 'translate').length, 8);
+  const translations = calls.filter(v => v[0] === 'translate').map(v => v.slice(1));
+  assert.deepEqual(translations, world.frame().positions.map(([y,x]) => [(x+.5)*20, (y+.45)*20]));
   assert.ok(calls.every(v => v.slice(1).every(x => typeof x !== 'number' || Number.isFinite(x))));
   assert.deepEqual(world.state(), before);
+  const initialCalls = structuredClone(calls);
+  calls.length = 0;
+  drawSyntheticFrame(ctx, world.frame(), world.config);
+  assert.deepEqual(calls, initialCalls); // Drawing has no animation timer or random state.
+  let previous = world.frame();
+  while (!world.done) {
+    world.step(Array(8).fill(0));
+    const snapshot = world.state();
+    calls.length = 0;
+    drawSyntheticFrame(ctx, world.frame(), world.config, previous);
+    assert.equal(calls.filter(v => v[0] === 'fillText').length, world.frame().alive.filter(Boolean).length);
+    assert.ok(calls.every(v => v.slice(1).every(x => typeof x !== 'number' || Number.isFinite(x))));
+    assert.deepEqual(world.state(), snapshot);
+    previous = world.frame();
+  }
 });

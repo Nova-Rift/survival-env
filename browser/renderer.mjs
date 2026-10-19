@@ -1,28 +1,87 @@
-/** Canvas observer only. It receives a copied frame, never controls policy input. */
-export function drawSyntheticFrame(ctx, frame, config) {
-  const cell = ctx.canvas.width/config.size;
+/** Meadow presentation only. Copied frames in; no stepping, RNG or policy input. */
+export function drawSyntheticFrame(ctx, frame, config, previous = null) {
+  const cell = ctx.canvas.width / config.size;
+  const circle = (x, y, radius, color) => {
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+  };
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  ctx.fillStyle = '#14241f'; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  ctx.fillStyle = frame.hazardsActive ? '#a54a26' : '#463628';
-  for (const [y, x] of frame.hazardCells) ctx.fillRect(x*cell+1, y*cell+1, cell-2, cell-2);
-  ctx.strokeStyle = '#30483c'; ctx.lineWidth = .5;
-  for (let i = 0; i <= config.size; i++) {
-    ctx.beginPath(); ctx.moveTo(i*cell, 0); ctx.lineTo(i*cell, ctx.canvas.height); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, i*cell); ctx.lineTo(ctx.canvas.width, i*cell); ctx.stroke();
+  ctx.fillStyle = '#dce5bf'; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  // Fixed grass texture depends only on tile coordinates, never world randomness.
+  for (let y = 0; y < config.size; y++) for (let x = 0; x < config.size; x++) {
+    ctx.fillStyle = (x + y) % 2 ? '#d6e0b6' : '#dde6c0';
+    ctx.fillRect(x * cell, y * cell, cell, cell);
+    if ((x * 7 + y * 3) % 5 === 0) {
+      ctx.strokeStyle = '#b1c291'; ctx.lineWidth = cell * .035;
+      ctx.beginPath(); ctx.moveTo((x + .18) * cell, (y + .75) * cell);
+      ctx.lineTo((x + .13) * cell, (y + .6) * cell);
+      ctx.moveTo((x + .18) * cell, (y + .75) * cell);
+      ctx.lineTo((x + .24) * cell, (y + .63) * cell); ctx.stroke();
+    }
   }
-  ctx.fillStyle = '#9cdb87';
-  for (const [y, x] of frame.resources) {ctx.beginPath(); ctx.arc((x+.5)*cell, (y+.5)*cell, cell*.15, 0, Math.PI*2); ctx.fill();}
+  // Orange thorn patches are dangerous; muted patches are currently inactive.
+  for (const [y, x] of frame.hazardCells) {
+    ctx.fillStyle = frame.hazardsActive ? '#d69456' : '#c5c6a0';
+    ctx.beginPath(); ctx.ellipse((x + .5) * cell, (y + .53) * cell,
+      cell * .46, cell * .39, -.2, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = frame.hazardsActive ? '#874627' : '#899273'; ctx.lineWidth = cell * .045;
+    ctx.beginPath(); ctx.moveTo((x + .17) * cell, (y + .67) * cell);
+    ctx.lineTo((x + .7) * cell, (y + .3) * cell);
+    for (const [tx, ty] of [[.3, .58], [.48, .45], [.63, .35]]) {
+      ctx.moveTo((x + tx) * cell, (y + ty) * cell);
+      ctx.lineTo((x + tx - .03) * cell, (y + ty - .16) * cell);
+    }
+    ctx.stroke();
+  }
+  // Every berry cluster is exactly one real shared food/recharge cell.
+  for (const [y, x] of frame.resources) {
+    const cx = (x + .5) * cell, cy = (y + .5) * cell;
+    ctx.fillStyle = '#5b854b'; ctx.beginPath();
+    ctx.ellipse(cx + .07 * cell, cy - .13 * cell, cell * .19, cell * .08, -.5, 0, Math.PI * 2); ctx.fill();
+    circle(cx - .1 * cell, cy, cell * .11, '#ac4b50');
+    circle(cx + .1 * cell, cy, cell * .11, '#bd5a60');
+    circle(cx, cy + .13 * cell, cell * .11, '#8f3e4b');
+    circle(cx + .08 * cell, cy - .03 * cell, cell * .025, '#f6d7c1');
+  }
+  const continued = previous && previous.tick + 1 === frame.tick;
+  // Draw inactive markers first so a living mouse on the same tile stays visible.
+  for (const [i, [y, x]] of frame.positions.entries()) if (!frame.alive[i]) {
+    circle((x + .5) * cell, (y + .5) * cell, cell * .21, '#9ba48a');
+    ctx.strokeStyle = '#596450'; ctx.lineWidth = cell * .055;
+    ctx.beginPath(); ctx.moveTo((x + .4) * cell, (y + .4) * cell);
+    ctx.lineTo((x + .6) * cell, (y + .6) * cell);
+    ctx.moveTo((x + .6) * cell, (y + .4) * cell);
+    ctx.lineTo((x + .4) * cell, (y + .6) * cell); ctx.stroke();
+  }
   frame.positions.forEach(([y, x], i) => {
-    if (!frame.alive[i]) {
-      ctx.fillStyle = '#53615a'; ctx.fillRect((x+.35)*cell, (y+.35)*cell, cell*.3, cell*.3); return;
+    if (!frame.alive[i]) return;
+    const cx = (x + .5) * cell, cy = (y + .45) * cell;
+    const old = continued ? previous.positions[i] : [y, x];
+    const dy = y - old[0], dx = x - old[1];
+    const angle = dx || dy ? Math.atan2(dy, dx) + Math.PI / 2 : -.35;
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(angle);
+    // Tail, rounded body, ears and pointed nose make a mouse at small sizes.
+    ctx.strokeStyle = '#aa8175'; ctx.lineWidth = cell * .05;
+    ctx.beginPath(); ctx.moveTo(0, cell * .22);
+    ctx.quadraticCurveTo(cell * .31, cell * .51, cell * .28, cell * .22); ctx.stroke();
+    ctx.fillStyle = '#8b7764'; ctx.beginPath();
+    ctx.ellipse(0, cell * .04, cell * .22, cell * .29, 0, 0, Math.PI * 2); ctx.fill();
+    for (const side of [-1, 1]) {
+      circle(side * cell * .17, -cell * .16, cell * .115, '#9c8773');
+      circle(side * cell * .17, -cell * .16, cell * .069, '#d8b1a2');
     }
-    ctx.fillStyle = `hsl(${i*45},75%,70%)`; ctx.fillRect((x+.1)*cell, (y+.08)*cell, cell*.8, cell*.62);
-    ctx.fillStyle = '#10241b'; ctx.font = `bold ${cell*.43}px sans-serif`; ctx.textAlign = 'center';
-    ctx.fillText(String(i), (x+.5)*cell, (y+.55)*cell);
-    for (const [offset, value, color] of [[.73, frame.power[i]/config.power_limit, '#9cdb87'],
-      [.82, frame.integrity[i]/config.max_integrity, '#70c7f0'], [.91, frame.wear[i]/config.wear_limit, '#f2c778']]) {
-      ctx.fillStyle = '#35473f'; ctx.fillRect((x+.1)*cell, (y+offset)*cell, cell*.8, cell*.06);
-      ctx.fillStyle = color; ctx.fillRect((x+.1)*cell, (y+offset)*cell, cell*.8*value, cell*.06);
-    }
+    ctx.fillStyle = '#9c8773'; ctx.beginPath();
+    ctx.moveTo(-cell * .17, -cell * .13); ctx.lineTo(0, -cell * .36);
+    ctx.lineTo(cell * .17, -cell * .13); ctx.closePath(); ctx.fill();
+    circle(0, -cell * .34, cell * .043, '#69473f');
+    circle(-cell * .075, -cell * .2, cell * .026, '#242b23');
+    circle(cell * .075, -cell * .2, cell * .026, '#242b23');
+    // A colored back tag connects each mouse to its number and stat row.
+    circle(0, cell * .045, cell * .12, `hsl(${i * 45},75%,70%)`);
+    ctx.restore();
+    ctx.fillStyle = '#263c2b'; ctx.font = `bold ${cell * .25}px sans-serif`; ctx.textAlign = 'center';
+    ctx.fillText(String(i), cx, (y + .51) * cell);
+    ctx.fillStyle = '#81966d'; ctx.fillRect((x + .14) * cell, (y + .87) * cell, cell * .72, cell * .06);
+    ctx.fillStyle = frame.power[i] <= 6 ? '#b65d39' : '#4e7940';
+    ctx.fillRect((x + .14) * cell, (y + .87) * cell, cell * .72 * frame.power[i] / config.power_limit, cell * .06);
   });
 }
