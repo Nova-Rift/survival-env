@@ -74,15 +74,16 @@ test('invitations are pending until accepted; a lone remaining participant is on
  act(g,1,{type:'leave'});assert.equal(g.frame().groups.length,0);assert.equal(g.frame().statuses[0],'On their own');assert.deepEqual(g.observe(0).groups,[]);
 });
 
-test('concurrent agents act independently with individual quotas and a voting barrier',()=>{
+test('live agents remain eligible after repeated passes and can accept a later invitation',()=>{
  const g=new SocialGame({concurrent:true});
- for(let n=0;n<4;n++)g.step({type:'pass'},'llm',7);
- assert.equal(g.phase,'social');assert.equal(g.observe(0).round,1);assert.deepEqual(g.legalActions(7),[]);
- assert.throws(()=>g.step({type:'pass'},'llm',7));
- for(let id=0;id<7;id++)for(let n=0;n<4;n++)g.step({type:'pass'},'llm',id);
- assert.equal(g.phase,'vote');g.step({type:'vote',target:0},'llm',7);assert.deepEqual(g.legalActions(7),[]);
+ for(let n=0;n<12;n++)g.step({type:'pass'},'llm',7);
+ assert.equal(g.phase,'social');assert.ok(g.legalActions(7).length);
+ g.step({type:'invite',target:7},'llm',0);g.step({type:'join',group:1},'llm',7);
+ g.step({type:'say',text:'I changed my mind.'},'llm',7);
+ assert.equal(g.observe(7).voteClock.secondsRemaining,120);
+ g.beginVote();g.step({type:'vote',target:0},'llm',7);assert.deepEqual(g.legalActions(7),[]);
  for(let id=0;id<7;id++)g.step({type:'vote',target:id===0?1:0},'llm',id);
- assert.equal(g.councils.length,1);assert.deepEqual(g.actionCounts,Array(8).fill(0));
+ assert.equal(g.councils.length,1);assert.equal(g.discussionRemainingMs,120000);
 });
 
 test('solo agents with outstanding invitations can accept each other without duplicate membership',()=>{
@@ -92,26 +93,14 @@ test('solo agents with outstanding invitations can accept each other without dup
  assert.ok(g.observe(0).socialHistory.some(e=>e.type==='withdraw'));
 });
 
-test('live setup preserves four speaking opportunities per player before the council',()=>{
+test('live speech and setup have no individual quota; shared council transition is explicit',()=>{
  const g=new SocialGame({concurrent:true});
- for(let a=0;a<8;a+=2){g.step({type:'invite',target:a+1},'llm',a);g.step({type:'join',group:g.groupOf(a).id},'llm',a+1);}
- assert.deepEqual(g.discussionCounts,Array(8).fill(0));
- assert.equal(g.observe(0).opportunities.discussionRemaining,4);
- for(let n=0;n<4;n++)for(let a=0;a<8;a++){
-  assert.equal(g.phase,'social');g.step({type:'say',text:`Message ${n} from ${a}`},'llm',a);
- }
- assert.equal(g.events.filter(e=>e.type==='say').length,32);assert.equal(g.phase,'vote');
- assert.equal(g.observe(0).heard.filter(e=>e.text.includes('Message')).length,8);
- assert.ok(!g.observe(2).heard.some(e=>e.text.endsWith('from 0')));
- for(let a=0;a<8;a++)g.step({type:'vote',target:a===0?1:0},'llm',a);
- assert.deepEqual(g.discussionCounts,Array(8).fill(0));assert.deepEqual(g.managementCounts,Array(8).fill(0));
-});
-
-test('repeated setup cannot delay voting indefinitely and voluntary silence remains legal',()=>{
- const g=new SocialGame({concurrent:true});
- for(let n=0;n<4;n++){g.step({type:'invite',target:1},'llm',0);g.step({type:'leave'},'llm',0);}
- assert.deepEqual(g.legalActions(0),[{type:'pass'}]);
- assert.equal(g.observe(0).opportunities.discussionRemaining,4);
- for(let a=0;a<8;a++)for(let n=0;n<4;n++)g.step({type:'pass'},'llm',a);
- assert.equal(g.phase,'vote');assert.equal(g.events.filter(e=>e.type==='say').length,0);
+ for(let n=0;n<12;n++){g.step({type:'invite',target:1},'llm',0);g.step({type:'leave'},'llm',0);}
+ g.step({type:'invite',target:1},'llm',0);g.step({type:'join',group:g.groupOf(0).id},'llm',1);
+ for(let n=0;n<12;n++)for(const id of [0,1])g.step({type:'say',text:`Message ${n} from ${id}`},'llm',id);
+ assert.equal(g.phase,'social');assert.equal(g.events.filter(e=>e.type==='say').length,24);
+ assert.ok(!g.observe(2).heard.some(e=>e.text.includes('Message')));
+ g.discussionRemainingMs=17000;assert.equal(g.observe(0).voteClock.secondsRemaining,17);
+ g.beginVote();assert.equal(g.phase,'vote');assert.equal(g.observe(0).voteClock.secondsRemaining,0);
+ assert.ok(g.legalActions(0).every(a=>a.type==='vote'));assert.throws(()=>g.beginVote());
 });

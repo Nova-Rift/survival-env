@@ -87,16 +87,21 @@ Talking remains illegal until another person accepts or is admitted.
 ### Independent live actors
 
 `new SocialGame({concurrent:true})` supports `step(action, source, actor)` in
-completion order. Each remaining actor has four discussion opportunities
-(`discussionCounts`): speaking or deliberately passing uses one. Invitations,
-joining and other membership actions use a separate eight-action allowance
-(`managementCounts`, twice `rounds`). At that limit, only say, pass and leave
-remain; leaving then uses a discussion opportunity. Total accepted actions stay
-in `actionCounts`. Observation `opportunities` explains the remaining personal
-allowances; no other player’s private counters are exposed. Voting waits for
-every discussion quota, then each player casts one private ballot. There is no
-global per-round barrier. Setup cannot consume speaking opportunities or run
-forever. Silence remains voluntary; dialogue is never fabricated. Default `concurrent:false` preserves the authored sequential API.
+completion order. Agents have no individual action limit. `discussionSeconds`
+(default120) defines a shared active-play window; `discussionRemainingMs` tracks
+its remaining time. Each personal observation includes `voteClock.secondsRemaining`
+and the timing rule, so the model knows when voting is approaching. Counters are
+statistics only. Pass means wait temporarily and reconsider, not opt out until the
+next council. `beginVote()` closes social actions and requires one private ballot
+per remaining player. After elimination, the full discussion duration resets.
+
+The host owns timing: stop dispatch at zero, drain all in-flight decisions and
+assessments, then call `beginVote()`. Pause must stop active time. Clock passage
+alone must not invalidate an otherwise current personal observation. The local
+runner uses a monotonic clock, five-second wait cooldowns bypassed by new private
+information, and independent conversation lanes. No clock ticks consume inference.
+There is no guaranteed number of messages; agents may choose silence throughout.
+Default `concurrent:false` preserves the authored sequential API.
 The application scheduler must serialize messages within each conversation and
 finish assessments before advancing that conversation. Separate conversations and
 solo agents run independently. Revalidate personal observations before applying an
