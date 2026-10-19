@@ -91,3 +91,27 @@ test('solo agents with outstanding invitations can accept each other without dup
  assert.equal(g.frame().groups.length,1);assert.deepEqual(g.frame().groups[0].members,[0,1]);assert.equal(g.frame().pendingConversations.length,0);
  assert.ok(g.observe(0).socialHistory.some(e=>e.type==='withdraw'));
 });
+
+test('live setup preserves four speaking opportunities per player before the council',()=>{
+ const g=new SocialGame({concurrent:true});
+ for(let a=0;a<8;a+=2){g.step({type:'invite',target:a+1},'llm',a);g.step({type:'join',group:g.groupOf(a).id},'llm',a+1);}
+ assert.deepEqual(g.discussionCounts,Array(8).fill(0));
+ assert.equal(g.observe(0).opportunities.discussionRemaining,4);
+ for(let n=0;n<4;n++)for(let a=0;a<8;a++){
+  assert.equal(g.phase,'social');g.step({type:'say',text:`Message ${n} from ${a}`},'llm',a);
+ }
+ assert.equal(g.events.filter(e=>e.type==='say').length,32);assert.equal(g.phase,'vote');
+ assert.equal(g.observe(0).heard.filter(e=>e.text.includes('Message')).length,8);
+ assert.ok(!g.observe(2).heard.some(e=>e.text.endsWith('from 0')));
+ for(let a=0;a<8;a++)g.step({type:'vote',target:a===0?1:0},'llm',a);
+ assert.deepEqual(g.discussionCounts,Array(8).fill(0));assert.deepEqual(g.managementCounts,Array(8).fill(0));
+});
+
+test('repeated setup cannot delay voting indefinitely and voluntary silence remains legal',()=>{
+ const g=new SocialGame({concurrent:true});
+ for(let n=0;n<4;n++){g.step({type:'invite',target:1},'llm',0);g.step({type:'leave'},'llm',0);}
+ assert.deepEqual(g.legalActions(0),[{type:'pass'}]);
+ assert.equal(g.observe(0).opportunities.discussionRemaining,4);
+ for(let a=0;a<8;a++)for(let n=0;n<4;n++)g.step({type:'pass'},'llm',a);
+ assert.equal(g.phase,'vote');assert.equal(g.events.filter(e=>e.type==='say').length,0);
+});

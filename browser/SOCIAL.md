@@ -87,9 +87,16 @@ Talking remains illegal until another person accepts or is admitted.
 ### Independent live actors
 
 `new SocialGame({concurrent:true})` supports `step(action, source, actor)` in
-completion order. Each remaining actor has four social actions (`actionCounts`),
-then one private ballot. There is no global per-round barrier; voting waits for
-all quotas. Default `concurrent:false` preserves the authored sequential API.
+completion order. Each remaining actor has four discussion opportunities
+(`discussionCounts`): speaking or deliberately passing uses one. Invitations,
+joining and other membership actions use a separate eight-action allowance
+(`managementCounts`, twice `rounds`). At that limit, only say, pass and leave
+remain; leaving then uses a discussion opportunity. Total accepted actions stay
+in `actionCounts`. Observation `opportunities` explains the remaining personal
+allowances; no other player’s private counters are exposed. Voting waits for
+every discussion quota, then each player casts one private ballot. There is no
+global per-round barrier. Setup cannot consume speaking opportunities or run
+forever. Silence remains voluntary; dialogue is never fabricated. Default `concurrent:false` preserves the authored sequential API.
 The application scheduler must serialize messages within each conversation and
 finish assessments before advancing that conversation. Separate conversations and
 solo agents run independently. Revalidate personal observations before applying an
