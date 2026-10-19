@@ -31,3 +31,12 @@ Moves are simultaneous; occupied/swapped/contested destinations fail. Agents rec
 Edit environment mechanics here. Do not copy an independently maintained environment back into the pilot repo; update its pinned source reference instead. This extraction preserves the previous environment implementation bytes from pilot commit `be2e3f43b972a6cd83b0f31f420abdfd3b3a7f1e`; original history remains in the pilot repository. No source license has yet been selected; public availability alone is not an open-source license grant.
 
 See [security boundaries](SECURITY.md). Richer open-source engines remain future work; none is installed or integrated.
+
+## Browser preparation
+
+The dependency-free [browser module](browser/README.md) ports these existing
+simulation rules into JavaScript, with Python-derived deterministic parity
+fixtures and an explicit per-agent policy memory boundary. It includes a scripted
+wait example, not a trained agent or replacement for the live recorded demo.
+JavaScript and NumPy use different default random generators; seed identity
+across runtimes is not claimed. Water and aging remain planned mechanics.
