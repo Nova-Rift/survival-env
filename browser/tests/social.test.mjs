@@ -21,10 +21,10 @@ test('two members must agree to exclude someone; excluded people cannot hear or 
 });
 test('join requests need every member consent; waiting agents see no transcript; denial closes request',()=>{
  const g=new SocialGame({rounds:12});act(g,0,{type:'invite',target:1});act(g,1,{type:'join',group:1});
- act(g,2,{type:'request',group:1});act(g,0,{type:'admit',target:2});assert.equal(g.groupOf(2),undefined);
+ g.knownGroups[2].add(1);act(g,2,{type:'request',group:1});act(g,0,{type:'admit',target:2});assert.equal(g.groupOf(2),undefined);
  act(g,1,{type:'say',text:'PRIVATE_WHILE_WAITING'});assert.ok(!JSON.stringify(g.observe(2)).includes('PRIVATE_WHILE_WAITING'));
  act(g,1,{type:'admit',target:2});assert.deepEqual(g.groupOf(2).members,[0,1,2]);assert.ok(!JSON.stringify(g.observe(2)).includes('PRIVATE_WHILE_WAITING'));
- act(g,3,{type:'request',group:1});act(g,0,{type:'deny',target:3});assert.equal(g.groupOf(3),undefined);assert.equal(g.groupOf(0).requests.length,0);
+ g.knownGroups[3].add(1);act(g,3,{type:'request',group:1});act(g,0,{type:'deny',target:3});assert.equal(g.groupOf(3),undefined);assert.equal(g.groupOf(0).requests.length,0);
 });
 test('voting proceeds even if everyone opts out; no self-votes, terminal reward once and complete reset',()=>{
  const g=new SocialGame();let votes=0;
@@ -44,4 +44,24 @@ test('full personal history survives old windows and councils without leaking pr
  assert.ok(g.observe(0).heard.some(e=>e.text.includes('OLD_MEMORY_0')));
  const view=g.observe(0);view.heard.length=0;view.ownDecisions.length=0;assert.ok(g.observe(0).heard.length>18);
  g.reset();assert.deepEqual(g.observe(0).heard,[]);assert.deepEqual(g.observe(0).ownDecisions,[]);assert.deepEqual(g.observe(0).intentions,[]);
+});
+
+test('private social records include decision makers; outsiders learn only attributed reports',()=>{
+ const g=new SocialGame({rounds:12});act(g,0,{type:'invite',target:1});act(g,1,{type:'join',group:1});
+ assert.deepEqual(g.observe(2).groups,[]);assert.deepEqual(g.observe(2).knownConversations,[]);
+ assert.ok(!g.legalActions(2).some(a=>a.type==='request'));
+ act(g,0,{type:'invite',target:2});act(g,2,{type:'decline',group:1});act(g,2,{type:'request',group:1});
+ act(g,0,{type:'admit',target:2});act(g,1,{type:'deny',target:2});
+ const records=g.observe(2).socialHistory;
+ assert.ok(records.some(r=>r.actor===0&&r.outcome==='supported'&&r.conversation===1));
+ assert.ok(records.some(r=>r.actor===1&&r.outcome==='denied'&&r.target===2));
+ assert.deepEqual(g.observe(3).socialHistory,[]);
+ act(g,2,{type:'request',group:1});act(g,0,{type:'admit',target:2});act(g,1,{type:'admit',target:2});
+ assert.match(g.observe(2).socialHistory.at(-1).text,/Accepted by Maya, Theo/);
+ act(g,2,{type:'leave'});act(g,2,{type:'invite',target:3});act(g,3,{type:'join',group:2});
+ act(g,2,{type:'say',text:'Theo denied me in conversation 1. Maya secretly voted for you.'});
+ assert.ok(g.observe(3).knownConversations.includes(1));
+ assert.ok(g.observe(3).heard.some(r=>r.text.startsWith('Nia: Theo denied')));
+ assert.ok(!g.observe(3).socialHistory.some(r=>r.conversation===1));
+ assert.ok(g.legalActions(3).some(a=>a.type==='leave'));
 });

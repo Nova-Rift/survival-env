@@ -21,7 +21,7 @@ supporters, including the proposer. The target cannot vote on their own removal.
 Membership changes cancel pending proposals. An excluded person cannot be invited
 back to that conversation. Groups dissolve after each elimination.
 
-Membership is observable; words are private to the people present when spoken.
+Only an agent’s own current membership is observable to that agent. Words are private to the people present when spoken.
 Joining later does not reveal past messages. Leaving or being excluded stops
 future messages, while previously heard messages remain in that agent's memory.
 The viewer can inspect every group; model prompts must use `observe(agent)` only,
@@ -59,3 +59,20 @@ its own decisions/intentions; private message audience rules remain unchanged.
 Histories survive council/group resets, but a new game or page reload clears
 in-memory state. The local model pauses on context rejection rather than dropping
 old events. Full history availability does not guarantee perfect model recall.
+
+
+Personal `socialHistory` records invitations, requests, individual supports,
+acceptance, denial, departure and exclusion responses with actor, target,
+conversation, time and outcome. Only directly involved people receive them.
+Pending requests cancelled by membership changes or a council are recorded as
+cancelled, not denied. Personal history persists across councils until reset.
+
+`knownConversations` contains identifiers encountered directly or reported in
+speech as “conversation N”. An agent can request a known available conversation;
+it does not receive external membership, transcripts, or request logs. Invitations
+can target any other living person outside the sender's own group, so legal invite
+options do not reveal who is in another group. Acceptance remains voluntary and
+requires being on one's own. Reported claims stay attributed speech, never become
+verified socialHistory, and may be truthful or deceptive. The viewer's global
+frame is not an agent observation. Availability of a previously known conversation
+is reflected in legal requests, but its current membership is not disclosed.
