@@ -65,3 +65,11 @@ test('private social records include decision makers; outsiders learn only attri
  assert.ok(!g.observe(3).socialHistory.some(r=>r.conversation===1));
  assert.ok(g.legalActions(3).some(a=>a.type==='leave'));
 });
+
+test('invitations are pending until accepted; a lone remaining participant is on their own',()=>{
+ const g=new SocialGame({rounds:12});act(g,0,{type:'invite',target:1});
+ assert.equal(g.frame().groups.length,0);assert.equal(g.frame().pendingConversations.length,1);assert.deepEqual(g.observe(0).groups,[]);
+ assert.equal(g.legalActions(0).some(a=>a.type==='say'),false);
+ act(g,1,{type:'join',group:1});assert.equal(g.frame().groups.length,1);assert.equal(g.frame().pendingConversations.length,0);
+ act(g,1,{type:'leave'});assert.equal(g.frame().groups.length,0);assert.equal(g.frame().statuses[0],'On their own');assert.deepEqual(g.observe(0).groups,[]);
+});

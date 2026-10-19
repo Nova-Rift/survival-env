@@ -76,3 +76,10 @@ requires being on one's own. Reported claims stay attributed speech, never becom
 verified socialHistory, and may be truthful or deceptive. The viewer's global
 frame is not an agent observation. Availability of a previously known conversation
 is reflected in legal requests, but its current membership is not disclosed.
+
+Invitations are staged until someone accepts: `frame.groups` and observation
+`groups` contain only conversations with at least two participants. Single-person
+invitation staging lives separately in viewer `pendingConversations` and the
+host's `pendingInvitations`; these are not active chats. A lone remaining person
+returns to “On their own” (or waiting for an outstanding invitation reply).
+Talking remains illegal until another person accepts or is admitted.
