@@ -73,3 +73,21 @@ test('invitations are pending until accepted; a lone remaining participant is on
  act(g,1,{type:'join',group:1});assert.equal(g.frame().groups.length,1);assert.equal(g.frame().pendingConversations.length,0);
  act(g,1,{type:'leave'});assert.equal(g.frame().groups.length,0);assert.equal(g.frame().statuses[0],'On their own');assert.deepEqual(g.observe(0).groups,[]);
 });
+
+test('concurrent agents act independently with individual quotas and a voting barrier',()=>{
+ const g=new SocialGame({concurrent:true});
+ for(let n=0;n<4;n++)g.step({type:'pass'},'llm',7);
+ assert.equal(g.phase,'social');assert.equal(g.observe(0).round,1);assert.deepEqual(g.legalActions(7),[]);
+ assert.throws(()=>g.step({type:'pass'},'llm',7));
+ for(let id=0;id<7;id++)for(let n=0;n<4;n++)g.step({type:'pass'},'llm',id);
+ assert.equal(g.phase,'vote');g.step({type:'vote',target:0},'llm',7);assert.deepEqual(g.legalActions(7),[]);
+ for(let id=0;id<7;id++)g.step({type:'vote',target:id===0?1:0},'llm',id);
+ assert.equal(g.councils.length,1);assert.deepEqual(g.actionCounts,Array(8).fill(0));
+});
+
+test('solo agents with outstanding invitations can accept each other without duplicate membership',()=>{
+ const g=new SocialGame({concurrent:true});g.step({type:'invite',target:1},'llm',0);g.step({type:'invite',target:0},'llm',1);
+ assert.ok(g.legalActions(1).some(a=>a.type==='join'&&a.group===1));g.step({type:'join',group:1},'llm',1);
+ assert.equal(g.frame().groups.length,1);assert.deepEqual(g.frame().groups[0].members,[0,1]);assert.equal(g.frame().pendingConversations.length,0);
+ assert.ok(g.observe(0).socialHistory.some(e=>e.type==='withdraw'));
+});

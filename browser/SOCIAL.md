@@ -83,3 +83,15 @@ invitation staging lives separately in viewer `pendingConversations` and the
 host's `pendingInvitations`; these are not active chats. A lone remaining person
 returns to “On their own” (or waiting for an outstanding invitation reply).
 Talking remains illegal until another person accepts or is admitted.
+
+### Independent live actors
+
+`new SocialGame({concurrent:true})` supports `step(action, source, actor)` in
+completion order. Each remaining actor has four social actions (`actionCounts`),
+then one private ballot. There is no global per-round barrier; voting waits for
+all quotas. Default `concurrent:false` preserves the authored sequential API.
+The application scheduler must serialize messages within each conversation and
+finish assessments before advancing that conversation. Separate conversations and
+solo agents run independently. Revalidate personal observations before applying an
+asynchronous result; personal notifications may change its context or legal actions.
+A pending solo inviter may accept another invitation, withdrawing its pending group.
