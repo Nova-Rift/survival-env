@@ -29,7 +29,7 @@ test('join requests need every member consent; waiting agents see no transcript;
 test('voting proceeds even if everyone opts out; no self-votes, terminal reward once and complete reset',()=>{
  const g=new SocialGame();let votes=0;
  while(!g.done){const obs=g.observe();if(obs.phase==='vote'){assert.ok(obs.legal.every(a=>a.target!==obs.agent));votes++;}g.step(obs.legal[0]);}
- assert.equal(g.remaining.length,1);assert.equal(g.councils.length,7);assert.equal(votes,35);assert.equal(g.rewards.reduce((a,b)=>a+b),1);assert.throws(()=>g.step({type:'pass'}));
+ assert.equal(g.remaining.length,3);assert.equal(g.councils.length,6);assert.equal(votes,35);assert.equal(g.rewards.reduce((a,b)=>a+b),1);assert.throws(()=>g.step({type:'pass'}));
  assert.deepEqual(g.reset(),new SocialGame().frame());
 });
 test('full personal history survives old windows and councils without leaking private choices',()=>{
@@ -103,4 +103,19 @@ test('live speech and setup have no individual quota; shared council transition 
  g.discussionRemainingMs=17000;assert.equal(g.observe(0).voteClock.secondsRemaining,17);
  g.beginVote();assert.equal(g.phase,'vote');assert.equal(g.observe(0).voteClock.secondsRemaining,0);
  assert.ok(g.legalActions(0).every(a=>a.type==='vote'));assert.throws(()=>g.beginVote());
+});
+
+test('five eliminated jurors elect a winner from three finalists with personal memories only',()=>{
+ const g=new SocialGame({concurrent:true});
+ while(g.remaining.length>3){g.beginVote();for(const id of [...g.voters])g.step(g.legalActions(id)[0],'agent',id)}
+ const finalists=[...g.remaining],jury=[...g.voters];assert.equal(jury.length,5);
+ g.memories[jury[0]].push({text:'JUROR_PRIVATE_MEMORY'});
+ g.memories[finalists[0]].push({text:'FINALIST_SECRET'});
+ g.beginVote();const view=g.observe(jury[0]);assert.equal(view.votePurpose,'choose_winner');
+ assert.ok(JSON.stringify(view).includes('JUROR_PRIVATE_MEMORY'));assert.ok(!JSON.stringify(view).includes('FINALIST_SECRET'));
+ for(const id of finalists)assert.deepEqual(g.legalActions(id),[]);
+ for(const id of jury){assert.deepEqual(g.legalActions(id).map(a=>a.target),finalists);g.step({type:'vote',target:finalists[1]},'agent',id);assert.deepEqual(g.legalActions(id),[])}
+ assert.equal(g.winner,finalists[1]);assert.equal(g.done,true);assert.deepEqual(g.remaining,finalists);
+ assert.equal(g.councils.at(-1).kind,'jury');assert.equal(g.councils.at(-1).eliminated,null);
+ assert.equal(g.rewards[g.winner],1);assert.equal(g.rewards.reduce((a,b)=>a+b),1);
 });

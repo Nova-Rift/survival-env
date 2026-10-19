@@ -107,3 +107,15 @@ finish assessments before advancing that conversation. Separate conversations an
 solo agents run independently. Revalidate personal observations before applying an
 asynchronous result; personal notifications may change its context or legal actions.
 A pending solo inviter may accept another invitation, withdrawing its pending group.
+
+### Final-three jury vote
+
+Elimination votes stop at three finalists. After their final discussion, the five
+previously eliminated players each cast one mandatory ballot for a finalist to
+**win**. Finalists cannot vote. `observe()` exposes `votePurpose: 'choose_winner'`
+and `votingRule`; `voters` supplies the eligible actors for this council. Jurors
+retain only their own personal histories, with no hidden transcript disclosure.
+Most jury votes wins; the existing seeded tie-break resolves a tie. The terminal
+council has `kind: 'jury'`, `winner`, and `eliminated: null`. Three finalists remain
+in `alive`; `phase: 'finished'` marks the end. Only the winner receives +1.
+The other two are unranked relative to one another (displayed as joint runners-up).
