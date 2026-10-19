@@ -1,9 +1,10 @@
 # Browser environment preparation
 
-Dependency-free ES modules for browsers and Node. This ports the existing Python
-gridworld rules; it does not add water, aging, injury, weather, communication,
-training, model weights, Canvas rendering or website integration. The live recorded
-demo is unchanged. No learned survival result is claimed.
+Dependency-free ES modules for browsers and Node. The legacy `simulator.mjs` ports
+the existing Python gridworld rules unchanged. The separately versioned
+`synthetic.mjs` extension below adds tested lifetime wear and hazard damage;
+`renderer.mjs` is an independent Canvas observer. No learned survival result is
+claimed. Existing Python mechanics and historical experiment reports are unchanged.
 
 Run from the repository root (tested with Node 22.22.2, Python 3.10.12 and existing
 NumPy 1.26.4; no dependency installation):
