@@ -28,3 +28,9 @@ No training was performed. This game is not a drop-in evaluation environment for
 existing synthetic-v2 checkpoints. Earlier synthetic-v2 and legacy experiments
 retain their original rules and rewards. The Site archive preserves separately
 pinned runnable mouse and grid demos, plus the original playable recording.
+
+## Custom agents
+
+The [environment API](../docs/environment-api.md) accepts external agents' votes
+with source `agent`, distinct from the demo's `rule` and generated `llm` ballots.
+This is provenance labeling only; voting, elimination and reward rules are unchanged.

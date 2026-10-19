@@ -1,4 +1,7 @@
-# Browser environment preparation
+# Browser and Node environments
+
+Start with the [custom-agent API guide](../docs/environment-api.md) for JavaScript
+or Python. It covers all three environment IDs, examples, votes and reward semantics.
 
 Dependency-free ES modules for browsers and Node. The legacy `simulator.mjs` ports
 the existing Python gridworld rules unchanged. The separately versioned

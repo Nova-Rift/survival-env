@@ -52,7 +52,7 @@ export class IslandGame {
     // Validate the entire round before any mutation: everyone votes exactly once.
     if (!Array.isArray(ballots) || ballots.length !== voters.length || new Set(ballots.map(v => v.voter)).size !== voters.length ||
       ballots.some(v => !voters.includes(v.voter) || !voters.includes(v.target) || v.voter === v.target ||
-        !['rule','llm'].includes(v.source) || typeof v.reason !== 'string' || v.reason.length > 300)) throw new RangeError('Each remaining castaway must cast one valid non-self vote');
+        !['rule','llm','agent'].includes(v.source) || typeof v.reason !== 'string' || v.reason.length > 300)) throw new RangeError('Each remaining castaway must cast one valid non-self vote');
     const totals = new Map(voters.map(i => [i, 0]));
     for (const ballot of ballots) totals.set(ballot.target, totals.get(ballot.target) + 1);
     const highest = Math.max(...totals.values());

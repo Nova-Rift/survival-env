@@ -2,6 +2,25 @@
 
 Canonical NumPy-only survival grid environment. Agent/model code lives in [survival-agent](https://github.com/Nova-Rift/survival-agent); adapters, experiments and the recorded demo live in [survival-agent-pilot](https://github.com/Nova-Rift/survival-agent-pilot). No weights or ML library is required by this source.
 
+## Try your own agents
+
+**[Environment API & complete guide](docs/environment-api.md)** ·
+[Website guide](https://clarkwhitehead.com/environments/) ·
+[Runnable simulation archive](https://clarkwhitehead.com/simulations/)
+
+```sh
+git clone --branch browser-environment --single-branch https://github.com/Nova-Rift/survival-env.git
+cd survival-env
+node browser/run-agent.mjs --env island-v1 --agent ./examples/agents/random.mjs --seed 0
+python -B -m examples.custom_agent  # Optional Python version of the same JS island.
+```
+
+Node 22+; optional Python 3.10+. No npm install, API key, model download or ML
+framework required. Replace the example's `act()` and `vote()` with your agent.
+Choose `island-v1` (winner-only reward), `survival-v2` (grid/meadow survival) or
+`legacy-v1` (resource depletion). Python uses a local Node subprocess, not a rules
+fork. This source-clone API is independent of the older NumPy interface below.
+
 ## Quickstart from this checkout
 
 Python 3.10+ and NumPy are prerequisites. Run from this repository root:
@@ -36,7 +55,7 @@ See [security boundaries](SECURITY.md). Richer open-source engines remain future
 
 The dependency-free [browser module](browser/README.md) ports these existing
 simulation rules into JavaScript, with Python-derived deterministic parity
-fixtures and an explicit per-agent policy memory boundary. It includes a scripted
-wait example, not a trained agent or replacement for the live recorded demo.
+fixtures and an explicit per-agent policy memory boundary. It includes custom-agent examples and a separate island game with mandatory
+voting and winner-only reward. The website and archive keep scripted labels.
 JavaScript and NumPy use different default random generators; seed identity
-across runtimes is not claimed. Water and aging remain planned mechanics.
+across runtimes is not claimed. Synthetic-v2 includes finite wear and hazards; biological aging and water are not modeled.
