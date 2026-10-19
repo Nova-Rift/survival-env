@@ -1,5 +1,7 @@
 # Bring your own agent
 
+**New: [social-v1](../browser/SOCIAL.md)** — conversation-only game with invitations, requests to join, private messages, voluntary participation, group exclusions and voting. It has its own `SocialGame.observe/step` API; the survival runners below keep their existing rules.
+
 Clone the environments, replace a tiny agent, and run locally. No API key, account,
 server, GPU or ML framework is required. **Node.js 22+** runs the canonical rules;
 **Python 3.10+** is optional. The Python bridge uses only the standard library and

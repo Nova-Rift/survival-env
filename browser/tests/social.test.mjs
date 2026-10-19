@@ -1,0 +1,34 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {SocialGame} from '../social.mjs';
+function act(game,actor,action){while(game.current!==actor)game.step({type:'pass'});return game.step(action);}
+function trio(){const g=new SocialGame({rounds:12});act(g,0,{type:'invite',target:1});act(g,1,{type:'join',group:1});act(g,0,{type:'invite',target:2});act(g,2,{type:'join',group:1});return g;}
+test('declining or passing never forces conversation and illegal joining is atomic',()=>{
+ const g=new SocialGame();act(g,0,{type:'invite',target:1});const before=g.frame();assert.throws(()=>g.step({type:'join',group:42}));assert.deepEqual(g.frame(),before);
+ act(g,1,{type:'decline',group:1});assert.equal(g.groupOf(1),undefined);assert.equal(g.groupOf(0).members.length,1);
+});
+test('late joiners, leavers and outsiders cannot hear private messages',()=>{
+ const g=new SocialGame({rounds:12});act(g,0,{type:'invite',target:1});act(g,1,{type:'join',group:1});act(g,0,{type:'say',text:'PRIVATE_BEFORE_JOIN'});
+ act(g,0,{type:'invite',target:2});act(g,2,{type:'join',group:1});assert.ok(!JSON.stringify(g.observe(2)).includes('PRIVATE_BEFORE_JOIN'));
+ act(g,1,{type:'leave'});act(g,0,{type:'say',text:'PRIVATE_AFTER_LEAVE'});
+ for(const i of [1,3,4,5,6,7])assert.ok(!JSON.stringify(g.observe(i)).includes('PRIVATE_AFTER_LEAVE'));
+ assert.ok(JSON.stringify(g.observe(2)).includes('PRIVATE_AFTER_LEAVE'));
+});
+test('two members must agree to exclude someone; excluded people cannot hear or rejoin',()=>{
+ const g=trio();act(g,0,{type:'exclude',target:2});assert.ok(g.groupOf(2));assert.ok(!g.legalActions(2).some(a=>a.type==='agree'&&a.target===2));
+ act(g,1,{type:'agree',target:2});assert.equal(g.groupOf(2),undefined);assert.ok(!g.legalActions(0).some(a=>a.type==='invite'&&a.target===2));
+ assert.ok(!g.legalActions(2).some(a=>a.type==='request'&&a.group===1));
+ act(g,0,{type:'say',text:'SECRET_AFTER_EXCLUSION'});assert.ok(!JSON.stringify(g.observe(2)).includes('SECRET_AFTER_EXCLUSION'));
+});
+test('join requests need every member consent; waiting agents see no transcript; denial closes request',()=>{
+ const g=new SocialGame({rounds:12});act(g,0,{type:'invite',target:1});act(g,1,{type:'join',group:1});
+ act(g,2,{type:'request',group:1});act(g,0,{type:'admit',target:2});assert.equal(g.groupOf(2),undefined);
+ act(g,1,{type:'say',text:'PRIVATE_WHILE_WAITING'});assert.ok(!JSON.stringify(g.observe(2)).includes('PRIVATE_WHILE_WAITING'));
+ act(g,1,{type:'admit',target:2});assert.deepEqual(g.groupOf(2).members,[0,1,2]);assert.ok(!JSON.stringify(g.observe(2)).includes('PRIVATE_WHILE_WAITING'));
+ act(g,3,{type:'request',group:1});act(g,0,{type:'deny',target:3});assert.equal(g.groupOf(3),undefined);assert.equal(g.groupOf(0).requests.length,0);
+});
+test('voting proceeds even if everyone opts out; no self-votes, terminal reward once and complete reset',()=>{
+ const g=new SocialGame();let votes=0;
+ while(!g.done){const obs=g.observe();if(obs.phase==='vote'){assert.ok(obs.legal.every(a=>a.target!==obs.agent));votes++;}g.step(obs.legal[0]);}
+ assert.equal(g.remaining.length,1);assert.equal(g.councils.length,7);assert.equal(votes,35);assert.equal(g.rewards.reduce((a,b)=>a+b),1);assert.throws(()=>g.step({type:'pass'}));
+ assert.deepEqual(g.reset(),new SocialGame().frame());
+});

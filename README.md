@@ -1,5 +1,7 @@
 # Survival Env
 
+**New: [social-v1](browser/SOCIAL.md)** — conversation-only game with invitations, requests to join, private messages, voluntary participation, group exclusions and voting. It has its own `SocialGame.observe/step` API; the survival runners below keep their existing rules.
+
 Canonical NumPy-only survival grid environment. Agent/model code lives in [survival-agent](https://github.com/Nova-Rift/survival-agent); adapters, experiments and the recorded demo live in [survival-agent-pilot](https://github.com/Nova-Rift/survival-agent-pilot). No weights or ML library is required by this source.
 
 ## Try your own agents
